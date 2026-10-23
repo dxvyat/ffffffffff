@@ -17,6 +17,8 @@ public sealed class WelcomeForm : Form
         MaximizeBox = false;
         MinimizeBox = false;
         ClientSize = new Size(560, 320);
+        BackColor = Color.FromArgb(13, 8, 11);
+        ForeColor = Color.Gainsboro;
 
         var root = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(24), RowCount = 5, ColumnCount = 1 };
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));
@@ -25,12 +27,14 @@ public sealed class WelcomeForm : Form
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
 
-        var title = new Label { Text = "DXV PRIVATE TWEEK", Font = new Font("Segoe UI", 20, FontStyle.Bold), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
+        var title = new Label { Text = "DXV PRIVATE TWEEK", Font = new Font("Consolas", 20, FontStyle.Bold), ForeColor = Color.FromArgb(230, 25, 75), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
         root.Controls.Add(title, 0, 0);
-        root.Controls.Add(new Label { Text = "Безопасная настройка Windows для игр. Каждое изменение можно откатить из резервной копии.", Dock = DockStyle.Fill, AutoSize = false }, 0, 1);
+        root.Controls.Add(new Label { Text = "Безопасная настройка Windows для игр.\nКаждое изменение можно откатить из резервной копии.", ForeColor = Color.FromArgb(220, 150, 165), Dock = DockStyle.Fill, AutoSize = false }, 0, 1);
 
         _restorePoint.Text = "Создать точку восстановления перед изменениями (рекомендуется)";
         _restorePoint.Checked = true;
+        _restorePoint.ForeColor = Color.Gainsboro;
+        _restorePoint.BackColor = Color.FromArgb(13, 8, 11);
         _restorePoint.Dock = DockStyle.Top;
         root.Controls.Add(_restorePoint, 0, 3);
 
@@ -44,6 +48,13 @@ public sealed class WelcomeForm : Form
             continueButton.Location = new Point(buttons.ClientSize.Width - continueButton.Width, 2);
             cancelButton.Location = new Point(buttons.ClientSize.Width - continueButton.Width - cancelButton.Width - 8, 2);
         };
+        foreach (var button in new[] { continueButton, cancelButton })
+        {
+            button.FlatStyle = FlatStyle.Flat;
+            button.FlatAppearance.BorderColor = Color.FromArgb(170, 20, 60);
+            button.BackColor = Color.FromArgb(80, 12, 32);
+            button.ForeColor = Color.FromArgb(255, 230, 235);
+        }
         root.Controls.Add(buttons, 0, 4);
 
         Controls.Add(root);
