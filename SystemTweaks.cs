@@ -94,6 +94,17 @@ public static class SystemTweaks
             Preview = "HKCU\\Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers: выбранный Fortnite .exe = ~ DISABLEDXMAXIMIZEDWINDOWEDMODE",
             ApplyAsync = ApplyFortniteFullscreenAsync,
             RollbackAsync = ctx => RestoreRegistryValuesAsync(ctx, "fortnite-fullscreen")
+        },
+        new()
+        {
+            Id = "fortnite-vsync",
+            Category = "Fortnite",
+            Name = "Отключить V-Sync в GameUserSettings.ini",
+            Description = "Сохраняет копию Fortnite config и выставляет bUseVSync=False. Проверь tearing и настройки NVIDIA/AMD после запуска игры.",
+            Risk = "Внимание",
+            Preview = "%LOCALAPPDATA%\\FortniteGame\\Saved\\Config\\WindowsClient\\GameUserSettings.ini: bUseVSync=False",
+            ApplyAsync = ctx => Task.FromResult(FortniteConfigService.ApplyVsyncOff(ctx)),
+            RollbackAsync = ctx => Task.FromResult(FortniteConfigService.Restore(ctx))
         }
     ];
 

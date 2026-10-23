@@ -163,6 +163,9 @@ public sealed class TweakContext
     public SnapshotStore Snapshots { get; }
     public CommandRunner Commands { get; }
     public string? SelectedFortniteExecutable { get; set; }
+    public string FortniteConfigPath => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "FortniteGame", "Saved", "Config", "WindowsClient", "GameUserSettings.ini");
 
     public async Task<TweakResult> CreateRestorePointAsync()
     {

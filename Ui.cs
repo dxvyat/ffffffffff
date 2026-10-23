@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Drawing;
 using System.Text;
 
@@ -62,6 +63,9 @@ public sealed class MainForm : Form
     private readonly Button _preview = new();
     private readonly Button _selectFortnite = new();
     private readonly Button _latencyProfile = new();
+    private readonly Button _diagnostics = new();
+    private readonly Button _overlays = new();
+    private readonly Button _openConfig = new();
     private readonly List<(CheckBox CheckBox, TweakDefinition Definition)> _checks = [];
 
     public MainForm(TweakContext context, bool createRestorePoint)
@@ -72,6 +76,9 @@ public sealed class MainForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(900, 620);
         Size = new Size(1100, 720);
+        BackColor = Color.FromArgb(13, 8, 11);
+        ForeColor = Color.Gainsboro;
+        Font = new Font("Segoe UI", 9F);
 
         _context.Logger.LineAdded += line => BeginInvoke(() => _log.AppendText(line + Environment.NewLine));
         BuildUi();
@@ -105,12 +112,12 @@ public sealed class MainForm : Form
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 150));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 210));
 
-        var header = new Label { Text = "DXV PRIVATE TWEEK", Font = new Font("Segoe UI", 22, FontStyle.Bold), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
+        var header = new Label { Text = "DXV PRIVATE TWEEK", Font = new Font("Consolas", 22, FontStyle.Bold), ForeColor = Color.FromArgb(230, 25, 75), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
         root.Controls.Add(header, 0, 0);
 
-        var hint = new Label { Text = "Отрицательной задержки не бывает: цель — минимальный стабильный input/render latency. Выберите нужные пункты и не отключайте защиту, обновления или системные службы ради FPS.", ForeColor = Color.DarkSlateGray, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
+        var hint = new Label { Text = "DXV PRIVATE TWEEK  •  latency / frametime / Fortnite profile\nОтрицательной задержки не бывает: собираем измерения, применяем обратимые настройки и сравниваем результат.", ForeColor = Color.FromArgb(220, 150, 165), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
         root.Controls.Add(hint, 0, 1);
 
         _tweaks.Dock = DockStyle.Fill;
@@ -119,14 +126,16 @@ public sealed class MainForm : Form
         _tweaks.WrapContents = false;
         foreach (var group in SystemTweaks.All.GroupBy(x => x.Category))
         {
-            var box = new GroupBox { Text = group.Key, AutoSize = true, Width = 1020, Padding = new Padding(10), Margin = new Padding(4) };
-            var panel = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false };
+            var box = new GroupBox { Text = group.Key, ForeColor = Color.FromArgb(235, 55, 95), BackColor = Color.FromArgb(20, 10, 14), AutoSize = true, Width = 1020, Padding = new Padding(10), Margin = new Padding(4) };
+            var panel = new FlowLayoutPanel { Dock = DockStyle.Fill, BackColor = Color.FromArgb(20, 10, 14), AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false };
             foreach (var definition in group)
             {
                 var check = new CheckBox
                 {
                     Text = $"{definition.Name}  [{definition.Risk}]\n    {definition.Description}",
                     AutoSize = true,
+                    ForeColor = Color.Gainsboro,
+                    BackColor = Color.FromArgb(20, 10, 14),
                     Width = 980,
                     Padding = new Padding(4),
                     Margin = new Padding(2)
@@ -140,8 +149,21 @@ public sealed class MainForm : Form
         }
         root.Controls.Add(_tweaks, 0, 2);
 
-        var bottom = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 2, ColumnCount = 1 };
-        var buttons = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight };
+        var bottom = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 3, ColumnCount = 1, BackColor = Color.FromArgb(13, 8, 11) };
+        bottom.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        bottom.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        bottom.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        var tools = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight, WrapContents = true, BackColor = Color.FromArgb(13, 8, 11) };
+        _diagnostics.Text = "Диагностика ПК / ping";
+        _overlays.Text = "Проверить оверлеи";
+        _openConfig.Text = "Открыть Fortnite config";
+        _diagnostics.Click += async (_, _) => await RunDiagnosticsAsync();
+        _overlays.Click += (_, _) => ShowOverlayReport();
+        _openConfig.Click += (_, _) => OpenFortniteConfig();
+        tools.Controls.AddRange([_diagnostics, _overlays, _openConfig]);
+        bottom.Controls.Add(tools, 0, 0);
+
+        var buttons = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight, WrapContents = true, BackColor = Color.FromArgb(13, 8, 11) };
         _preview.Text = "Показать изменения";
         _apply.Text = "Применить выбранное";
         _rollback.Text = "Откатить резервные копии";
@@ -155,14 +177,18 @@ public sealed class MainForm : Form
         _latencyProfile.Click += (_, _) => SelectLatencyProfile();
         report.Click += (_, _) => SaveReport();
         buttons.Controls.AddRange([_latencyProfile, _selectFortnite, _preview, _apply, _rollback, report]);
-        bottom.Controls.Add(buttons, 0, 0);
+        bottom.Controls.Add(buttons, 0, 1);
 
         _log.Dock = DockStyle.Fill;
         _log.ReadOnly = true;
+        _log.BackColor = Color.FromArgb(8, 7, 9);
+        _log.ForeColor = Color.FromArgb(240, 210, 220);
         _log.Font = new Font("Consolas", 9);
-        bottom.Controls.Add(_log, 0, 1);
+        bottom.Controls.Add(_log, 0, 2);
         root.Controls.Add(bottom, 0, 3);
         Controls.Add(root);
+        foreach (var button in new[] { _diagnostics, _overlays, _openConfig, _latencyProfile, _selectFortnite, _preview, _apply, _rollback, report })
+            StyleButton(button);
     }
 
     private void PreviewSelected()
@@ -203,6 +229,40 @@ public sealed class MainForm : Form
         var target = _checks.FirstOrDefault(x => x.Definition.Id == "fortnite-fullscreen");
         if (target.CheckBox is not null)
             target.CheckBox.Checked = true;
+    }
+
+    private async Task RunDiagnosticsAsync()
+    {
+        SetBusy(true);
+        try
+        {
+            _context.Logger.Info("Запуск диагностики ПК, питания и задержки сети…");
+            var report = await DiagnosticsService.RunAsync(_context);
+            foreach (var line in report.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+                _context.Logger.Info(line.TrimEnd('\r'));
+        }
+        finally
+        {
+            SetBusy(false);
+        }
+    }
+
+    private void ShowOverlayReport()
+    {
+        _context.Logger.Info("Оверлеи и фоновые процессы (автоматически не закрываются): " + DiagnosticsService.GetOverlayReport());
+    }
+
+    private void OpenFortniteConfig()
+    {
+        var path = _context.FortniteConfigPath;
+        var folder = Path.GetDirectoryName(path);
+        if (folder is null || !Directory.Exists(folder))
+        {
+            _context.Logger.Warning("Папка Fortnite config не найдена. Запусти Fortnite один раз и повтори.");
+            return;
+        }
+        Process.Start(new ProcessStartInfo("explorer.exe", $"\"{folder}\"") { UseShellExecute = true });
+        _context.Logger.Info($"Открыта папка Fortnite config: {folder}");
     }
 
     private async Task ApplySelectedAsync()
@@ -271,6 +331,20 @@ public sealed class MainForm : Form
         _preview.Enabled = !busy;
         _selectFortnite.Enabled = !busy;
         _latencyProfile.Enabled = !busy;
+        _diagnostics.Enabled = !busy;
+        _overlays.Enabled = !busy;
+        _openConfig.Enabled = !busy;
         Cursor = busy ? Cursors.WaitCursor : Cursors.Default;
+    }
+
+    private static void StyleButton(Button button)
+    {
+        button.AutoSize = true;
+        button.Height = 30;
+        button.FlatStyle = FlatStyle.Flat;
+        button.FlatAppearance.BorderColor = Color.FromArgb(170, 20, 60);
+        button.BackColor = Color.FromArgb(80, 12, 32);
+        button.ForeColor = Color.FromArgb(255, 230, 235);
+        button.Padding = new Padding(8, 2, 8, 2);
     }
 }
