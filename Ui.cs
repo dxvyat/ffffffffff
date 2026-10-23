@@ -33,11 +33,16 @@ public sealed class WelcomeForm : Form
         _restorePoint.Dock = DockStyle.Top;
         root.Controls.Add(_restorePoint, 0, 3);
 
-        var continueButton = new Button { Text = "Продолжить", Dock = DockStyle.Right, Width = 140, DialogResult = DialogResult.OK };
-        var cancelButton = new Button { Text = "Выход", Dock = DockStyle.Right, Width = 100, DialogResult = DialogResult.Cancel, Margin = new Padding(0, 0, 8, 0) };
-        var buttons = new FlowLayoutPanel { FlowDirection = FlowDirection.RightToLeft, Dock = DockStyle.Fill };
+        var continueButton = new Button { Text = "Продолжить", Width = 140, Height = 32, DialogResult = DialogResult.OK, Anchor = AnchorStyles.Top | AnchorStyles.Right };
+        var cancelButton = new Button { Text = "Выход", Width = 100, Height = 32, DialogResult = DialogResult.Cancel, Anchor = AnchorStyles.Top | AnchorStyles.Right };
+        var buttons = new Panel { Dock = DockStyle.Fill };
         buttons.Controls.Add(continueButton);
         buttons.Controls.Add(cancelButton);
+        buttons.Resize += (_, _) =>
+        {
+            continueButton.Location = new Point(buttons.ClientSize.Width - continueButton.Width, 2);
+            cancelButton.Location = new Point(buttons.ClientSize.Width - continueButton.Width - cancelButton.Width - 8, 2);
+        };
         root.Controls.Add(buttons, 0, 4);
 
         Controls.Add(root);
@@ -49,6 +54,7 @@ public sealed class WelcomeForm : Form
 public sealed class MainForm : Form
 {
     private readonly TweakContext _context;
+    private readonly bool _createRestorePoint;
     private readonly RichTextBox _log = new();
     private readonly FlowLayoutPanel _tweaks = new();
     private readonly Button _apply = new();
@@ -58,9 +64,10 @@ public sealed class MainForm : Form
     private readonly Button _latencyProfile = new();
     private readonly List<(CheckBox CheckBox, TweakDefinition Definition)> _checks = [];
 
-    public MainForm(TweakContext context, IEnumerable<string> startupMessages)
+    public MainForm(TweakContext context, bool createRestorePoint)
     {
         _context = context;
+        _createRestorePoint = createRestorePoint;
         Text = "DXV PRIVATE TWEEK";
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(900, 620);
@@ -68,8 +75,28 @@ public sealed class MainForm : Form
 
         _context.Logger.LineAdded += line => BeginInvoke(() => _log.AppendText(line + Environment.NewLine));
         BuildUi();
-        foreach (var message in startupMessages)
-            _context.Logger.Info(message);
+        Shown += async (_, _) => await InitializeAsync();
+    }
+
+    private async Task InitializeAsync()
+    {
+        if (!_createRestorePoint)
+        {
+            _context.Logger.Info("Точка восстановления пропущена по выбору пользователя.");
+            return;
+        }
+
+        _context.Logger.Info("Создание точки восстановления Windows…");
+        SetBusy(true);
+        try
+        {
+            var result = await _context.CreateRestorePointAsync();
+            if (result.Success) _context.Logger.Info(result.Message); else _context.Logger.Warning(result.Message);
+        }
+        finally
+        {
+            SetBusy(false);
+        }
     }
 
     private void BuildUi()

@@ -113,7 +113,28 @@ public sealed class CommandRunner
             process.Start();
             var stdoutTask = process.StandardOutput.ReadToEndAsync();
             var stderrTask = process.StandardError.ReadToEndAsync();
-            await process.WaitForExitAsync();
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            try
+            {
+                await process.WaitForExitAsync(timeout.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                try
+                {
+                    if (!process.HasExited)
+                        process.Kill(entireProcessTree: true);
+                }
+                catch
+                {
+                    // The process may have exited between the timeout and Kill call.
+                }
+
+                var timedOutOutput = await stdoutTask;
+                var timedOutError = await stderrTask;
+                _logger.Warning("Команда остановлена после таймаута 30 секунд.");
+                return new CommandResult(false, -2, timedOutOutput, "Таймаут выполнения команды. " + timedOutError);
+            }
             var output = await stdoutTask;
             var error = await stderrTask;
             var success = process.ExitCode == 0;

@@ -48,18 +48,7 @@ internal static class Program
         if (welcome.ShowDialog() != DialogResult.OK)
             return;
 
-        var startupMessages = new List<string>();
-        if (welcome.CreateRestorePoint)
-        {
-            var restoreResult = context.CreateRestorePointAsync().GetAwaiter().GetResult();
-            startupMessages.Add(restoreResult.Success ? restoreResult.Message : "ПРЕДУПРЕЖДЕНИЕ: " + restoreResult.Message);
-        }
-        else
-        {
-            startupMessages.Add("Точка восстановления пропущена по выбору пользователя.");
-        }
-
-        Application.Run(new MainForm(context, startupMessages));
+        Application.Run(new MainForm(context, welcome.CreateRestorePoint));
     }
 
     private static bool IsAdministrator()
