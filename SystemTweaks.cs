@@ -64,6 +64,30 @@ public static class SystemTweaks
         },
         new()
         {
+            Id = "visual-effects",
+            Category = "Визуальные эффекты",
+            Name = "Уменьшить визуальные эффекты Windows",
+            Description = "Выбирает профиль Windows «наилучшее быстродействие». Изменение влияет на рабочий стол, а не гарантирует FPS в Fortnite.",
+            Risk = "Внимание",
+            Preview = "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects: VisualFXSetting=2",
+            ApplyAsync = ctx => SetRegistryValuesAsync(ctx, "visual-effects", [
+                ("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects", "VisualFXSetting", 2)]),
+            RollbackAsync = ctx => RestoreRegistryValuesAsync(ctx, "visual-effects")
+        },
+        new()
+        {
+            Id = "transparency",
+            Category = "Визуальные эффекты",
+            Name = "Отключить прозрачность интерфейса",
+            Description = "Убирает прозрачность меню Windows и снижает лишнюю отрисовку рабочего стола.",
+            Risk = "Безопасно",
+            Preview = "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize: EnableTransparency=0",
+            ApplyAsync = ctx => SetRegistryValuesAsync(ctx, "transparency", [
+                ("Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", "EnableTransparency", 0)]),
+            RollbackAsync = ctx => RestoreRegistryValuesAsync(ctx, "transparency")
+        },
+        new()
+        {
             Id = "high-performance",
             Category = "Питание",
             Name = "Включить план высокой производительности",
